@@ -1,0 +1,80 @@
+---
+title: "Dissatisfied customers"
+author: "Siddharth Patil"
+date: "May 13, 2018"
+output:
+  word_document: default
+  html_document: default
+---
+#Import the training dataset
+```{r}
+data = read.csv("train.csv", header = T)
+#data$TARGET = as.factor(data$TARGET)
+plot(as.factor(data$TARGET)) #Balancing the dataset is required
+```
+
+#Balancing the dataset
+```{r}
+#oversampling the minority class and undersampling the majority class
+library(ROSE)
+data = ovun.sample(TARGET ~ ., data = data, method = "both",N = 76020)$data
+data$TARGET = as.factor(data$TARGET)
+#plot(data$TARGET) #plot indicates that balancing is done #The dataset is balanced
+```
+
+#Data normalization
+```{r}
+# normalize <- function(x) {
+#  return ((x - min(x)) / (max(x) - min(x))) }
+#  
+# data_norm = as.data.frame(lapply(data, normalize))
+# 
+# data_norm$TARGET = as.factor(data$TARGET)
+```
+
+#Divide the data set into test and train datasets
+```{r}
+## 75% of the sample size
+smp_size = floor(0.75 * nrow(data))
+
+## set the seed to make your partition reproducible
+set.seed(123)
+train_ind = sample(seq_len(nrow(data)), size = smp_size)
+
+train_data = data[train_ind, ]
+test_data = data[-train_ind, ]
+```
+
+#Variable selection
+```{r}
+# log_reg = glm(TARGET ~ ., data, family = "binomial")
+# 
+# library(broom)
+# tm = tidy(log_reg) #data frame with model summary parameters as columns
+# 
+# # get variables with p value less than 0.05
+# library(dplyr)
+# sign_variables = tm$term[tm$p.value < 0.05] %>% paste(collapse = " + ")
+# sign_variables = paste0('TARGET', ' ~ ', sign_variables)
+# sign_variables
+```
+
+#Building a model using naive Bayes
+```{r}
+library(e1071)
+NB = naiveBayes(TARGET ~ .,train_data)
+```
+
+# Use the model to make predictions for the test data set
+```{r}
+test_predictions = predict(NB, newdata = test_data)
+```
+
+#Model diagnostics
+```{r}
+#Confusion matrix
+library(caret)
+confusionMatrix(table(test_data$TARGET, test_predictions))
+
+#ROC curve
+roc.curve(test_data$TARGET, test_predictions)
